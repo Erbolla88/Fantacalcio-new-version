@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import useAuctionStore from '../store/useAuctionStore';
 import { Player, Bid, User, PlayerRole } from '../types';
 import { RoleIcon } from './icons/RoleIcon';
 import { ClubLogo } from './icons/ClubLogo';
 import { Button } from './common/Button';
 import { useTranslation } from '../lib/i18n';
-import { FALLBACK_WINNER_IMAGE_DATA_URL } from '../lib/constants';
+import { FALLBACK_WINNER_IMAGE_DATA_URL, NEW_PLAYER_SOUND_DATA_URL } from '../lib/constants';
 
 const PlayerCard: React.FC<{ player: Player }> = ({ player }) => {
     const { t } = useTranslation();
@@ -204,6 +204,20 @@ const CurrentBidInfo: React.FC<{ bid: Bid | null, users: Record<string, User> }>
 export const AuctionRoom: React.FC<{ currentUser: User | undefined }> = ({ currentUser }) => {
     const auction = useAuctionStore(state => state.auction);
     const { t } = useTranslation();
+    const prevPlayerIndexRef = useRef<number | undefined>();
+
+    useEffect(() => {
+        if (auction?.currentPlayerIndex !== undefined && auction.currentPlayerIndex > -1) {
+            // Play sound only when the index genuinely changes to a new player
+            if (prevPlayerIndexRef.current !== auction.currentPlayerIndex) {
+                 const audio = new Audio(NEW_PLAYER_SOUND_DATA_URL);
+                 audio.play().catch(e => console.error("Error playing sound:", e));
+            }
+        }
+        // Store the current index for the next check
+        prevPlayerIndexRef.current = auction?.currentPlayerIndex;
+    }, [auction?.currentPlayerIndex]);
+
 
     if (!auction) return <div className="text-center">{t('loading')}</div>;
 
