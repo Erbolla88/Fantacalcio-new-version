@@ -168,6 +168,31 @@ function App() {
   }, [lang]);
 
   useEffect(() => {
+    // This effect runs once to set up an audio unlock mechanism for browsers
+    // that have strict autoplay policies. Audio can only be started by a user gesture.
+    // This listener waits for the first click/tap, "unlocks" the audio context,
+    // and then removes itself.
+    const unlockAudio = () => {
+      // Create a dummy AudioContext. This is the standard way to "unlock" audio.
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      if (audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
+      // This listener only needs to fire once.
+      document.body.removeEventListener('click', unlockAudio);
+      document.body.removeEventListener('touchend', unlockAudio);
+    };
+
+    document.body.addEventListener('click', unlockAudio);
+    document.body.addEventListener('touchend', unlockAudio);
+
+    return () => {
+      document.body.removeEventListener('click', unlockAudio);
+      document.body.removeEventListener('touchend', unlockAudio);
+    };
+  }, []);
+
+  useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
         setFirebaseUser(user);
         setAuthIsLoading(false);
