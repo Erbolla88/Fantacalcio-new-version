@@ -15,6 +15,7 @@ import { AuthScreen } from './components/AuthScreen';
 
 const AdminAuctionManager: React.FC<{ auction: AuctionData }> = ({ auction }) => {
     const { sellPlayer, nextPlayer } = useAuctionStore(state => state.actions);
+    const serverTimeOffset = useAuctionStore(state => state.serverTimeOffset);
     const { status, countdownEnd, lastWinner, config } = auction;
 
     useEffect(() => {
@@ -22,14 +23,14 @@ const AdminAuctionManager: React.FC<{ auction: AuctionData }> = ({ auction }) =>
             return;
         }
 
-        const timeRemaining = countdownEnd - Date.now();
+        const timeRemaining = countdownEnd - (Date.now() + serverTimeOffset);
         
         const sellTimeout = setTimeout(() => {
             sellPlayer();
         }, timeRemaining > 0 ? timeRemaining : 0);
 
         return () => clearTimeout(sellTimeout);
-    }, [status, countdownEnd, sellPlayer]);
+    }, [status, countdownEnd, sellPlayer, serverTimeOffset]);
     
     useEffect(() => {
         if (status !== 'SOLD') {
