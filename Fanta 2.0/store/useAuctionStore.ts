@@ -193,7 +193,7 @@ const useAuctionStore = create<AuctionState>((set, get) => ({
       if (!auction || auction.status !== 'PAUSED') return;
       const updates = {
           status: 'BIDDING',
-          countdownEnd: Date.now() + serverTimeOffset + 5000,
+          countdownEnd: Date.now() + serverTimeOffset + 8000,
       };
       await update(ref(db, `auctions/${AUCTION_ID}`), updates);
     },
@@ -214,7 +214,7 @@ const useAuctionStore = create<AuctionState>((set, get) => ({
       if (amount <= (auction.currentBid?.amount || player.baseValue - 1)) return false;
       if (currentUser.credits < amount) return false;
 
-      const countdownDuration = auction.config.isTestMode ? 2000 : 5000;
+      const countdownDuration = auction.config.isTestMode ? 2000 : 8000;
       
       await update(ref(db, `auctions/${AUCTION_ID}`), {
           currentBid: { userId, amount },
