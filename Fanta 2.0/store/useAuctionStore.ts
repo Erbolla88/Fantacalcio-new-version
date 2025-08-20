@@ -26,6 +26,7 @@ const auctionRef = ref(db, `auctions/${AUCTION_ID}`);
 interface AuctionState {
   auction: AuctionData | null;
   isConnecting: boolean;
+  serverTimeOffset: number;
   actions: {
     connect: () => Unsubscribe;
     createUserProfile: (uid: string, name: string, teamName: string, email: string) => Promise<void>;
@@ -54,8 +55,15 @@ interface AuctionState {
 const useAuctionStore = create<AuctionState>((set, get) => ({
   auction: null,
   isConnecting: true,
+  serverTimeOffset: 0,
   actions: {
     connect: () => {
+        const offsetRef = ref(db, '.info/serverTimeOffset');
+        onValue(offsetRef, (snap) => {
+            const offset = snap.val() || 0;
+            set({ serverTimeOffset: offset });
+        });
+
         const listener = onValue(auctionRef, (snapshot) => {
             if (snapshot.exists()) {
                 const dataFromDb = snapshot.val();
@@ -181,11 +189,11 @@ const useAuctionStore = create<AuctionState>((set, get) => ({
     startAuction: () => get().actions.nextPlayer(),
     pauseAuction: () => setFirebaseData(ref(db, `auctions/${AUCTION_ID}/status`), 'PAUSED'),
     resumeAuction: async () => {
-      const { auction } = get();
+      const { auction, serverTimeOffset } = get();
       if (!auction || auction.status !== 'PAUSED') return;
       const updates = {
           status: 'BIDDING',
-          countdownEnd: Date.now() + 5000,
+          countdownEnd: Date.now() + serverTimeOffset + 5000,
       };
       await update(ref(db, `auctions/${AUCTION_ID}`), updates);
     },
@@ -193,7 +201,7 @@ const useAuctionStore = create<AuctionState>((set, get) => ({
         return get().actions.resetAuction();
     },
     placeBid: async (userId, amount) => {
-      const { auction } = get();
+      const { auction, serverTimeOffset } = get();
       if (!auction || auction.status !== 'BIDDING' || !auction.players || !auction.auctionQueue || auction.currentPlayerIndex === null) return false;
       
       const currentUser = auction.users[userId];
@@ -210,7 +218,7 @@ const useAuctionStore = create<AuctionState>((set, get) => ({
       
       await update(ref(db, `auctions/${AUCTION_ID}`), {
           currentBid: { userId, amount },
-          countdownEnd: Date.now() + countdownDuration,
+          countdownEnd: Date.now() + serverTimeOffset + countdownDuration,
       });
       return true;
     },
@@ -254,7 +262,7 @@ const useAuctionStore = create<AuctionState>((set, get) => ({
         }
     },
     nextPlayer: async () => {
-      const { auction } = get();
+      const { auction, serverTimeOffset } = get();
       if (!auction || !auction.auctionQueue) return;
       const nextIndex = auction.currentPlayerIndex + 1;
 
@@ -264,7 +272,7 @@ const useAuctionStore = create<AuctionState>((set, get) => ({
             currentPlayerIndex: nextIndex,
             currentBid: null,
             status: 'BIDDING',
-            countdownEnd: Date.now() + countdownDuration,
+            countdownEnd: Date.now() + serverTimeOffset + countdownDuration,
         });
       } else {
         await update(ref(db, `auctions/${AUCTION_ID}`), {
