@@ -34,6 +34,7 @@ const PlayerCard: React.FC<{ player: Player }> = ({ player }) => {
 const CountdownTimer: React.FC<{ endTime: number | null }> = ({ endTime }) => {
     const { t } = useTranslation();
     const isTestMode = useAuctionStore(state => state.auction?.config.isTestMode);
+    const serverTimeOffset = useAuctionStore(state => state.serverTimeOffset);
     const [seconds, setSeconds] = useState(0);
 
     useEffect(() => {
@@ -43,7 +44,7 @@ const CountdownTimer: React.FC<{ endTime: number | null }> = ({ endTime }) => {
         }
 
         const updateSeconds = () => {
-            const remaining = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
+            const remaining = Math.max(0, Math.ceil((endTime - (Date.now() + serverTimeOffset)) / 1000));
             setSeconds(remaining);
         };
         
@@ -51,7 +52,7 @@ const CountdownTimer: React.FC<{ endTime: number | null }> = ({ endTime }) => {
         const interval = setInterval(updateSeconds, 500);
         return () => clearInterval(interval);
 
-    }, [endTime]);
+    }, [endTime, serverTimeOffset]);
 
     let color = 'text-brand-subtle';
     if (endTime) {
